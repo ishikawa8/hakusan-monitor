@@ -272,14 +272,14 @@ body { font-family: -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 
       <!-- 山頂気温 -->
       <div class="today-info-item">
         <div class="ti-icon">🌡️</div>
-        <div class="ti-label">山頂気温（2,702m）</div>
+        <div class="ti-label">山頂気温（最高 2,702m）</div>
         <div class="ti-value" id="wi-summit-temp">--°C</div>
         <div class="ti-sub" id="wi-summit-feel">体感 --°C</div>
       </div>
       <!-- 登山口気温 -->
       <div class="today-info-item">
         <div class="ti-icon">🌡️</div>
-        <div class="ti-label">登山口気温（1,260m）</div>
+        <div class="ti-label">登山口気温（最高 1,260m）</div>
         <div class="ti-value" id="wi-trail-temp" style="color:#334155">--°C</div>
         <div class="ti-sub" id="wi-trail-diff">標高補正 +9°C</div>
       </div>
@@ -748,19 +748,15 @@ body { font-family: -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 
 function showSection(id) {
   document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
   document.getElementById('section-' + id).classList.add('active');
-  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  _initTab(id);
-}
-// ボタン等から event なしで呼ぶ用
-function showSectionById(id) {
-  document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
-  document.getElementById('section-' + id).classList.add('active');
   document.querySelectorAll('.nav-tab').forEach((el, i) => {
     const ids = ['today','realtime','route','forecast','safety'];
     el.classList.toggle('active', ids[i] === id);
   });
   _initTab(id);
+}
+// ボタン等から event なしで呼ぶ用
+function showSectionById(id) {
+  showSection(id);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function _initTab(id) {
@@ -880,20 +876,23 @@ function weatherGrade(code, wind, precip) {
 
 // ISO → HH:MM (JST)
 function toHHMM(iso) {
-  return new Date(iso).toLocaleTimeString('ja-JP',
+  const isoStr = iso.includes('+') ? iso : iso + '+09:00';
+  return new Date(isoStr).toLocaleTimeString('ja-JP',
     { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
 }
 
 // 日没 N時間前
 function subHours(iso, h) {
-  const d = new Date(iso); d.setHours(d.getHours() - h);
+  const isoStr = iso.includes('+') ? iso : iso + '+09:00';
+  const d = new Date(isoStr); d.setHours(d.getHours() - h);
   return d.toLocaleTimeString('ja-JP',
     { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
 }
 
 // 日没まで残り時間テキスト
 function remaining(iso) {
-  const diff = new Date(iso) - new Date();
+  const isoStr = iso.includes('+') ? iso : iso + '+09:00';
+  const diff = new Date(isoStr) - new Date();
   if (diff <= 0) return '日没済み';
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
@@ -980,7 +979,8 @@ async function fetchWeather() {
     daily: 'sunrise,sunset,temperature_2m_max,wind_speed_10m_max,weather_code',
     hourly: 'precipitation_probability',
     timezone: 'Asia/Tokyo',
-    forecast_days: 1
+    forecast_days: 1,
+    wind_speed_unit: 'ms'
   });
 
   try {
@@ -990,7 +990,11 @@ async function fetchWeather() {
 
     // 午後（12〜18時）の最大降水確率
     const precipPm = json.hourly.precipitation_probability
-      .filter((_,i) => { const h = new Date(json.hourly.time[i]).getHours(); return h >= 12 && h <= 18; })
+      .filter((_,i) => {
+        const isoStr = json.hourly.time[i].includes('+') ? json.hourly.time[i] : json.hourly.time[i] + '+09:00';
+        const h = new Date(isoStr).getHours();
+        return h >= 12 && h <= 18;
+      })
       .reduce((a,b) => Math.max(a,b), 0);
 
     // 登山口気温: 標高差1,442m × 0.65°C/100m ≈ +9.4°C
