@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hakusan_monitor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/hakusan_monitor
+      ENVIRONMENT: development
+      JWT_SECRET_KEY: dev-secret-key-change-in-production
+      DEVICE_API_KEYS: hakusan_key_001,hakusan_key_002
+      CORS_ORIGINS: "https://ishikawa8.github.io,http://localhost:3000,http://localhost:8000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+volumes:
+  pgdata:
