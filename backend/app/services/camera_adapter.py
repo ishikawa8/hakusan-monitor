@@ -6,7 +6,7 @@ Camera tool is TBD - this provides the interface contract.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -86,7 +86,7 @@ class GenericCameraAdapter(BaseCameraAdapter):
             battery_pct=raw_data.get("battery_pct"),
             temperature_c=raw_data.get("temperature_c"),
             signal_strength=raw_data.get("signal_strength"),
-            timestamp=datetime.fromisoformat(raw_data.get("timestamp", datetime.utcnow().isoformat())),
+            timestamp=datetime.fromisoformat(raw_data.get("timestamp", datetime.now(timezone.utc).isoformat())),
         )
 
 

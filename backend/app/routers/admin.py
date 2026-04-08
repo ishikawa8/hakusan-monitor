@@ -1,7 +1,7 @@
 """Admin API router - 15 endpoints (JWT auth required)."""
 
 import uuid
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timezone
 from typing import Optional
 from io import BytesIO
 
@@ -25,7 +25,6 @@ from app.schemas.admin import (
 )
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
-JST = timezone(timedelta(hours=9))
 
 
 # ---------- GET /admin/dashboard ----------
@@ -418,7 +417,7 @@ async def update_trail_status(
         val = getattr(body, field, None)
         if val is not None:
             setattr(ts, field, val)
-    ts.updated_at = datetime.now(JST)
+    ts.updated_at = datetime.now(timezone.utc)
     await db.flush()
     return {"status": "updated"}
 
@@ -435,7 +434,7 @@ async def delete_trail_status(
     if not ts:
         raise HTTPException(status_code=404, detail="登山道状況が見つかりません")
     ts.is_active = False
-    ts.updated_at = datetime.now(JST)
+    ts.updated_at = datetime.now(timezone.utc)
     await db.flush()
     return {"status": "deleted (soft)"}
 
