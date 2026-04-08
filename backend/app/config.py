@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     ai_confidence_threshold: float = 0.5
 
     # CORS
-    cors_origins: str = "https://ishikawa8.github.io,http://localhost:3000,http://localhost:8000"
+    cors_origins: str = "https://ishikawa8.github.io,http://localhost:3000,http://localhost:5173,http://localhost:8000"
 
     # Environment
     environment: str = "development"

@@ -1,7 +1,7 @@
 """All 16 database table definitions per design doc v2.2."""
 
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from sqlalchemy import (
     Column, String, Text, Integer, SmallInteger, Boolean, Date,
     DateTime, Numeric, ForeignKey, Index, UniqueConstraint, JSON
@@ -26,7 +26,7 @@ class Location(Base):
     longitude = Column(Numeric)
     elevation = Column(Integer)
     is_active = Column(Boolean, nullable=False, default=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     # relationships
     devices = relationship("Device", back_populates="location")
@@ -117,7 +117,7 @@ class Device(Base):
     last_heartbeat = Column(DateTime(timezone=True))
     installed_at = Column(DateTime(timezone=True))
     maintenance_notes = Column(Text)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     location = relationship("Location", back_populates="devices")
     status_logs = relationship("DeviceStatusLog", back_populates="device",
@@ -133,16 +133,17 @@ class SensorCount(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=new_uuid)
-    device_id = Column(Text, nullable=False)  # FK → devices.device_id (logical)
+    device_id = Column(Text, ForeignKey("devices.device_id"), nullable=False)
     location_id = Column(UUID(as_uuid=True), ForeignKey("locations.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), nullable=False)
     up_count = Column(Integer, nullable=False)
     down_count = Column(Integer, nullable=False)
     battery_pct = Column(SmallInteger)
     temperature_c = Column(Numeric)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     location = relationship("Location", back_populates="sensor_counts")
+    device = relationship("Device", foreign_keys=[device_id])
 
 
 # ---------- 3.2.7 hourly_counts ----------
@@ -178,7 +179,7 @@ class RouteRealtime(Base):
     ascending_count = Column(Integer, nullable=False, default=0)
     descending_count = Column(Integer, nullable=False, default=0)
     congestion_level = Column(Text, nullable=False, default="low")
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     route = relationship("Route", back_populates="realtime")
 
@@ -198,7 +199,7 @@ class CalibrationRecord(Base):
     ir_descending = Column(Integer)
     correction_factor = Column(Numeric)
     operator = Column(Text)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     location = relationship("Location", back_populates="calibration_records")
 
@@ -232,12 +233,12 @@ class CameraImage(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=new_uuid)
-    camera_id = Column(Text, nullable=False)  # FK → devices.device_id (logical)
+    camera_id = Column(Text, ForeignKey("devices.device_id"), nullable=False)
     capture_timestamp = Column(DateTime(timezone=True), nullable=False)
     storage_path = Column(Text, nullable=False)
     file_size_bytes = Column(Integer)
     analysis_status = Column(Text, nullable=False, default="pending")
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     analysis = relationship("CameraAnalysis", back_populates="image", uselist=False)
 
@@ -255,7 +256,7 @@ class CameraAnalysis(Base):
     confidence_score = Column(Numeric)
     correction_suggestion = Column(Text)
     raw_metadata = Column(JSONB)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     image = relationship("CameraImage", back_populates="analysis")
 
@@ -271,7 +272,7 @@ class TrailStatus(Base):
     description = Column(Text, nullable=False)
     source = Column(Text)
     is_active = Column(Boolean, nullable=False, default=True)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     route = relationship("Route", back_populates="trail_statuses")
 
@@ -305,7 +306,7 @@ class Alert(Base):
     value = Column(Numeric)
     threshold = Column(Numeric)
     is_read = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     location = relationship("Location", back_populates="alerts")
 
@@ -324,7 +325,7 @@ class DeviceStatusLog(Base):
     battery_pct = Column(SmallInteger)
     changed_by = Column(Text)
     reason = Column(Text)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     device = relationship("Device", back_populates="status_logs",
                           foreign_keys=[device_id_fk])

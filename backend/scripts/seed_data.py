@@ -10,7 +10,7 @@ from app.database import engine, async_session, Base
 from app.models import (
     Location, Route, Waypoint, Facility, Device, SensorCount,
     HourlyCount, RouteRealtime, CalibrationRecord, CalibrationFactor,
-    CameraImage, CameraAnalysis, TrailStatus, Lodging, Alert,
+    CameraImage, CameraAnalysis, TrailStatus, Lodging, Alert, DeviceStatusLog,
 )
 
 JST = timezone(timedelta(hours=9))

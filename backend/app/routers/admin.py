@@ -152,7 +152,7 @@ async def update_device(
 ):
     """デバイスのステータス・備考を更新"""
     device = (await db.execute(
-        select(Device).where(Device.id == device_id)
+        select(Device).where(Device.device_id == device_id)
     )).scalar_one_or_none()
     if not device:
         raise HTTPException(status_code=404, detail="デバイスが見つかりません")

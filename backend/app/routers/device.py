@@ -1,7 +1,7 @@
 """Device API router - 2 endpoints (API key auth)."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,7 +44,7 @@ async def receive_sensor_count(
 
     # Update device status
     device.last_data_at = body.timestamp
-    device.last_heartbeat = datetime.utcnow()
+    device.last_heartbeat = datetime.now(timezone.utc)
     if body.battery_pct is not None:
         device.battery_pct = body.battery_pct
     if body.temperature_c is not None:
@@ -102,7 +102,7 @@ async def upload_camera_image(
 
     # Update device heartbeat
     device.last_data_at = capture_ts
-    device.last_heartbeat = datetime.utcnow()
+    device.last_heartbeat = datetime.now(timezone.utc)
 
     await db.flush()
 

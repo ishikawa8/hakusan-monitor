@@ -1,0 +1,12 @@
+# AI / Image Analysis (optional, large dependencies)
+# Install only when running Detectron2 person detection
+#
+# Usage:
+#   pip install -r requirements-ai.txt
+#   pip install detectron2 (from source or pre-built wheel)
+
+torch==2.4.0
+torchvision==0.19.0
+
+# Supabase client (optional, for direct storage access)
+supabase==2.7.0

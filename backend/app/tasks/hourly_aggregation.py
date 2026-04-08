@@ -31,10 +31,10 @@ async def aggregate_hourly(target_date: date = None):
             .order_by(SensorCount.location_id, "hour")
         )).all()
 
-        # Build cumulative counts per location
+        # Build cumulative counts per location (keep UUID objects for DB queries)
         location_data: dict = {}
         for r in rows:
-            loc_id = str(r.location_id)
+            loc_id = r.location_id  # Keep as UUID, not str
             if loc_id not in location_data:
                 location_data[loc_id] = []
             location_data[loc_id].append({

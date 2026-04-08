@@ -1,14 +1,17 @@
 """Public API router - 8 endpoints (no auth required)."""
 
+import logging
 from datetime import date
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import TrailStatus, Lodging, Route
 from app.services.weather import fetch_weather
+
+logger = logging.getLogger(__name__)
 from app.services.congestion import (
     get_current_by_location, get_current_by_route,
     get_hourly, get_forecast_calendar, get_forecast_dow,
@@ -26,7 +29,14 @@ router = APIRouter(prefix="/api/v1/public", tags=["public"])
 @router.get("/weather")
 async def get_weather():
     """山岳気象情報（Open-Meteo経由、1時間キャッシュ）"""
-    return await fetch_weather()
+    try:
+        return await fetch_weather()
+    except Exception as e:
+        logger.error(f"Weather API error: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="気象データを取得できません。しばらく後に再試行してください。"
+        )
 
 
 # --- GET /public/current ---

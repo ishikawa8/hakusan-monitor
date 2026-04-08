@@ -25,7 +25,7 @@ _cache: dict = {}
 CACHE_TTL = 3600  # 1 hour
 
 
-def _weather_grade(wmo: int, wind: float, precip: int) -> str:
+def _weather_grade(wmo: int, wind: float, precip: float) -> str:
     """Determine weather grade A/B/C per design doc Tab1 logic."""
     if wmo >= 95 or wind >= 15:
         return "C"
