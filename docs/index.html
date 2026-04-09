@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白山登山ナビ | 混雑・安全・ルート情報</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f0f4f8; color: #1a2332; font-size: 14px; }
+
+/* ===== Header ===== */
+.site-header { background: linear-gradient(135deg, #0f3460 0%, #16537e 50%, #1a6b9a 100%); color: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+.header-inner { max-width: 1100px; margin: 0 auto; padding: 10px 16px 0; }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.header-row h1 { font-size: 17px; font-weight: 800; letter-spacing: 0.5px; }
+.header-row h1 span { font-size: 11px; font-weight: 400; opacity: 0.75; display: block; margin-top: 1px; }
+.header-meta { text-align: right; }
+.header-meta .update-time { font-size: 11px; opacity: 0.7; }
+.header-meta .data-live { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; background: rgba(34,197,94,0.2); padding: 2px 10px; border-radius: 20px; }
+.live-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Nav tabs - scrollable on mobile */
+.nav-tabs { display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab { padding: 9px 16px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }
+.nav-tab:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.nav-tab.active { color: #fff; border-bottom-color: #38bdf8; }
+
+/* ===== Layout ===== */
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.page-section { display: none; }
+.page-section.active { display: block; }
+
+/* ===== Cards ===== */
+.card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); margin-bottom: 16px; }
+.card-title { font-size: 15px; font-weight: 700; color: #0f3460; margin-bottom: 4px; }
+.card-sub { font-size: 12px; color: #8a9ab5; margin-bottom: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* ===== Judgment Banner (Layer 1 Hero) ===== */
+.judgment-banner { background: linear-gradient(135deg, #0f3460, #1a6b9a); border-radius: 16px; padding: 24px; color: #fff; margin-bottom: 16px; text-align: center; }
+.judgment-label { font-size: 12px; opacity: 0.7; margin-bottom: 6px; }
+.judgment-question { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+.judgment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 480px; margin: 0 auto; }
+.judgment-item { background: rgba(255,255,255,0.12); border-radius: 12px; padding: 14px; }
+.judgment-item .ji-label { font-size: 11px; opacity: 0.7; }
+.judgment-item .ji-value { font-size: 28px; font-weight: 800; margin: 4px 0; }
+.judgment-item .ji-detail { font-size: 11px; opacity: 0.8; }
+.ji-good { border: 2px solid rgba(34,197,94,0.6); }
+.ji-warn { border: 2px solid rgba(234,179,8,0.6); }
+.ji-bad { border: 2px solid rgba(239,68,68,0.6); }
+.judgment-verdict { margin-top: 16px; padding: 14px; background: rgba(34,197,94,0.15); border-radius: 12px; border: 1px solid rgba(34,197,94,0.3); }
+.verdict-text { font-size: 16px; font-weight: 700; }
+.verdict-detail { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+
+/* ===== Today Info Grid ===== */
+.today-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.today-info-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; }
+.ti-icon { font-size: 22px; margin-bottom: 4px; }
+.ti-label { font-size: 11px; color: #8a9ab5; font-weight: 600; }
+.ti-value { font-size: 22px; font-weight: 800; color: #0f3460; margin: 4px 0 2px; line-height: 1.1; }
+.ti-sub { font-size: 11px; color: #64748b; }
+.ti-highlight { background: #fef2f2; border-color: #fca5a5; }
+.ti-highlight .ti-value { color: #dc2626; }
+.ti-good { background: #f0fdf4; border-color: #bbf7d0; }
+.ti-good .ti-value { color: #16a34a; }
+.today-info-source { font-size: 10px; color: #94a3b8; text-align: right; margin-top: 8px; }
+.today-info-source a { color: #64748b; text-decoration: none; }
+
+/* ===== Recommended departure ===== */
+.depart-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.depart-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.depart-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.depart-card.best { border-color: #22c55e; background: #f0fdf4; }
+.dc-time { font-size: 22px; font-weight: 800; color: #0f3460; }
+.dc-crowd { font-size: 12px; margin-top: 4px; }
+.dc-tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; margin-top: 6px; }
+.best .dc-tag { background: #dcfce7; color: #166534; }
+
+/* ===== Route Cards ===== */
+.route-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.route-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; transition: all 0.2s; cursor: pointer; position: relative; }
+.route-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.route-card.lv-low { border-color: #22c55e; background: #f0fdf4; }
+.route-card.lv-mid { border-color: #eab308; background: #fffbeb; }
+.route-card.lv-high { border-color: #ef4444; background: #fef2f2; }
+.rc-name { font-size: 14px; font-weight: 700; }
+.rc-level { font-size: 22px; font-weight: 800; margin: 4px 0; }
+.lv-low .rc-level { color: #16a34a; }
+.lv-mid .rc-level { color: #ca8a04; }
+.lv-high .rc-level { color: #dc2626; }
+.rc-count { font-size: 11px; color: #64748b; }
+.rc-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; margin-top: 6px; }
+.lv-low .rc-badge { background: #dcfce7; color: #166534; }
+.lv-mid .rc-badge { background: #fef3c7; color: #92400e; }
+.lv-high .rc-badge { background: #fee2e2; color: #991b1b; }
+
+/* ===== Insight box ===== */
+.insight { background: #eff6ff; border-radius: 12px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #1a6b9a; }
+.insight-title { font-size: 13px; font-weight: 700; color: #0f3460; margin-bottom: 4px; }
+.insight-text { font-size: 13px; color: #334155; line-height: 1.7; }
+
+/* ===== Safety Alert ===== */
+.safety-alert { background: #fef2f2; border: 2px solid #fca5a5; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.safety-alert-title { font-size: 14px; font-weight: 700; color: #991b1b; margin-bottom: 6px; }
+.safety-alert-text { font-size: 13px; color: #7f1d1d; line-height: 1.6; }
+
+/* ===== Mountain stat row ===== */
+.mountain-stat { display: flex; justify-content: center; gap: 32px; padding: 14px 0; flex-wrap: wrap; }
+.stat-item { text-align: center; }
+.stat-value { font-size: 32px; font-weight: 800; color: #0f3460; line-height: 1.1; }
+.stat-value.danger { color: #dc2626; }
+.stat-label { font-size: 11px; color: #8a9ab5; margin-top: 3px; }
+
+/* ===== Recommend card ===== */
+.recommend-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+.recommend-card.recommended { border-color: #22c55e; background: #f0fdf4; }
+.rec-left { flex: 1; }
+.rec-name { font-size: 15px; font-weight: 700; }
+.rec-info { font-size: 12px; color: #64748b; margin-top: 3px; line-height: 1.5; }
+.rec-right { text-align: right; min-width: 90px; }
+.rec-time { font-size: 20px; font-weight: 800; color: #0f3460; }
+.rec-tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; background: #dcfce7; color: #166534; margin-top: 4px; }
+
+/* ===== Forecast calendar ===== */
+.forecast-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+.fc-header { font-size: 11px; font-weight: 700; color: #8a9ab5; padding: 6px 0; }
+.fc-cell { padding: 8px 2px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+.fc-cell:hover { transform: scale(1.05); }
+.fc-date { font-weight: 700; }
+.fc-level { font-size: 10px; margin-top: 1px; }
+.fc-low { background: #f0fdf4; }
+.fc-mid { background: #fef9c3; }
+.fc-high { background: #fee2e2; }
+
+/* ===== Safety stats ===== */
+.safety-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 12px; }
+.safety-stat { text-align: center; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+.ss-value { font-size: 28px; font-weight: 800; }
+.ss-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+/* ===== Access info ===== */
+.access-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.access-row:last-child { border-bottom: none; }
+.ar-name { font-weight: 700; font-size: 14px; }
+.ar-detail { font-size: 12px; color: #64748b; margin-top: 2px; }
+.ar-status { font-size: 13px; font-weight: 700; padding: 4px 14px; border-radius: 20px; }
+.ar-open { background: #dcfce7; color: #166534; }
+.ar-busy { background: #fef3c7; color: #92400e; }
+.ar-closed { background: #f1f5f9; color: #64748b; }
+
+/* ===== Tips ===== */
+.tips-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tip-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; transition: all 0.2s; }
+.tip-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.tip-icon { font-size: 28px; margin-bottom: 8px; }
+.tip-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: #0f3460; }
+.tip-text { font-size: 12px; color: #64748b; line-height: 1.6; }
+
+/* ===== Checklist ===== */
+.checklist { list-style: none; margin-top: 12px; }
+.checklist li { padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; }
+.checklist li:last-child { border-bottom: none; }
+.check-icon { width: 20px; height: 20px; border-radius: 50%; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; color: #0f3460; font-weight: 700; }
+
+/* ===== Heatmap table ===== */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap-wrap table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
+.heatmap-wrap th, .heatmap-wrap td { padding: 8px 6px; }
+.heatmap-wrap th { font-weight: 600; color: #64748b; font-size: 11px; }
+
+/* ===== Footer ===== */
+.site-footer { background: #0f1f33; color: #64748b; text-align: center; padding: 24px 16px; font-size: 11px; line-height: 1.8; margin-top: 40px; }
+.site-footer a { color: #38bdf8; text-decoration: none; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .route-grid { grid-template-columns: repeat(2, 1fr); }
+  .mountain-stat { gap: 16px; }
+  .judgment-grid { grid-template-columns: 1fr 1fr; }
+  .depart-cards { grid-template-columns: repeat(3, 1fr); }
+  .nav-tab { padding: 9px 12px; font-size: 11px; }
+  .container { padding: 12px; }
+}
+@media (max-width: 480px) {
+  .route-grid { grid-template-columns: 1fr; }
+  .depart-cards { grid-template-columns: 1fr; }
+  .judgment-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <div class="header-inner">
+    <div class="header-row">
+      <h1>白山登山ナビ<span>白山国立公園 登山者モニタリング</span></h1>
+      <div class="header-meta">
+        <div class="data-live"><span class="live-dot"></span> データ更新中</div>
+        <div class="update-time" id="header-update-time">最終更新: 取得中...</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="showSection('today')">今日の白山</div>
+      <div class="nav-tab" onclick="showSection('realtime')">リアルタイム</div>
+      <div class="nav-tab" onclick="showSection('route')">ルート・計画</div>
+      <div class="nav-tab" onclick="showSection('forecast')">混雑予測</div>
+      <div class="nav-tab" onclick="showSection('safety')">安全情報</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ================================================================ -->
+<!-- TAB 1: 今日の白山 (Layer 1 - 出発判断)                            -->
+<!-- ================================================================ -->
+<div id="section-today" class="page-section active">
+
+  <!-- Hero: 今日登っていい？ -->
+  <div class="judgment-banner">
+    <div class="judgment-label">白山登山 総合判断</div>
+    <div class="judgment-question">今日、白山に登っていい？</div>
+    <div class="judgment-grid">
+      <div class="judgment-item ji-good" id="ji-weather-item">
+        <div class="ji-label">天候</div>
+        <div class="ji-value" id="ji-weather-grade">-</div>
+        <div class="ji-detail" id="ji-weather-detail">取得中...</div>
+      </div>
+      <div class="judgment-item ji-warn">
+        <div class="ji-label">混雑度</div>
+        <div class="ji-value">B</div>
+        <div class="ji-detail">砂防新道やや混雑</div>
+      </div>
+      <div class="judgment-item ji-good">
+        <div class="ji-label">登山道</div>
+        <div class="ji-value">A</div>
+        <div class="ji-detail">全ルート通行可</div>
+      </div>
+      <div class="judgment-item ji-good">
+        <div class="ji-label">アクセス</div>
+        <div class="ji-value">A</div>
+        <div class="ji-detail">シャトルバス通常運行</div>
+      </div>
+    </div>
+    <div class="judgment-verdict">
+      <div class="verdict-text">登山日和です（観光新道・平瀬道がおすすめ）</div>
+      <div class="verdict-detail">砂防新道は混雑が予想されます。5時台出発 or 別ルートで快適に登れます</div>
+    </div>
+  </div>
+
+  <!-- 今日の山岳気象情報（Open-Meteo API / 1時間メモリキャッシュ） -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+      <div class="card-title" style="margin-bottom:0">今日の白山 気象情報</div>
+      <div id="weather-fetch-status" style="font-size:11px;color:#94a3b8">読み込み中...</div>
+    </div>
+    <div class="card-sub">山頂（御前峰 2,702m）と登山口（別当出合 1,260m）の気象データ ― Open-Meteo APIから自動取得</div>
+    <div class="today-info-grid">
+      <!-- 天気 -->
+      <div class="today-info-item" id="wi-weather-card">
+        <div class="ti-icon" id="wi-weather-icon">⏳</div>
+        <div class="ti-label">天気</div>
+        <div class="ti-value" id="wi-weather-text" style="font-size:16px">取得中</div>
+        <div class="ti-sub" id="wi-weather-sub">　</div>
+      </div>
+      <!-- 山頂気温 -->
+      <div class="today-info-item">
+        <div class="ti-icon">🌡️</div>
+        <div class="ti-label">山頂気温（最高 2,702m）</div>
+        <div class="ti-value" id="wi-summit-temp">--°C</div>
+        <div class="ti-sub" id="wi-summit-feel">体感 --°C</div>
+      </div>
+      <!-- 登山口気温 -->
+      <div class="today-info-item">
+        <div class="ti-icon">🌡️</div>
+        <div class="ti-label">登山口気温（最高 1,260m）</div>
+        <div class="ti-value" id="wi-trail-temp" style="color:#334155">--°C</div>
+        <div class="ti-sub" id="wi-trail-diff">標高補正 +9°C</div>
+      </div>
+      <!-- 風速 -->
+      <div class="today-info-item">
+        <div class="ti-icon">💨</div>
+        <div class="ti-label">山頂風速（最大）</div>
+        <div class="ti-value" id="wi-wind-speed">-- m/s</div>
+        <div class="ti-sub" id="wi-wind-note">　</div>
+      </div>
+      <!-- 降水確率 -->
+      <div class="today-info-item">
+        <div class="ti-icon">🌧</div>
+        <div class="ti-label">降水確率（午後）</div>
+        <div class="ti-value" id="wi-precip-val">--%</div>
+        <div class="ti-sub">午後12〜18時</div>
+      </div>
+      <!-- 日没 -->
+      <div class="today-info-item ti-highlight">
+        <div class="ti-icon">🌆</div>
+        <div class="ti-label">日没</div>
+        <div class="ti-value" id="wi-sunset">--:--</div>
+        <div class="ti-sub" id="wi-descent-limit">下山リミット --:--</div>
+      </div>
+      <!-- 日の出 -->
+      <div class="today-info-item ti-good">
+        <div class="ti-icon">🌄</div>
+        <div class="ti-label">日の出</div>
+        <div class="ti-value" id="wi-sunrise">--:--</div>
+        <div class="ti-sub" id="wi-sunrise-sub">　</div>
+      </div>
+      <!-- 服装目安 -->
+      <div class="today-info-item">
+        <div class="ti-icon">🧣</div>
+        <div class="ti-label">服装目安</div>
+        <div class="ti-value" id="wi-clothing" style="font-size:13px">取得中</div>
+        <div class="ti-sub" id="wi-clothing-sub">山頂気温ベース</div>
+      </div>
+    </div>
+    <div class="today-info-source">
+      気象データ: <a href="https://open-meteo.com/" target="_blank">Open-Meteo API</a>（elevation=2,702m補正済み・ブラウザ内1時間キャッシュ）
+      ― 本番実装ではサーバー側でキャッシュし /api/v1/public/weather から提供
+    </div>
+  </div>
+
+  <!-- おすすめ出発時間 -->
+  <div class="card">
+    <div class="card-title">おすすめ出発時間</div>
+    <div class="card-sub">砂防新道の登山口（別当出合）を基準にした渋滞回避の出発時刻</div>
+    <div class="depart-cards">
+      <div class="depart-card best">
+        <div class="dc-time">5:00</div>
+        <div class="dc-crowd" style="color:#16a34a">渋滞なし</div>
+        <div class="dc-tag">最もおすすめ</div>
+      </div>
+      <div class="depart-card">
+        <div class="dc-time">6:00</div>
+        <div class="dc-crowd" style="color:#ca8a04">やや混雑</div>
+        <div class="dc-tag" style="background:#fef3c7;color:#92400e">ピーク直前</div>
+      </div>
+      <div class="depart-card">
+        <div class="dc-time">8:30</div>
+        <div class="dc-crowd" style="color:#16a34a">渋滞解消</div>
+        <div class="dc-tag" style="background:#eff6ff;color:#1e40af">ピーク後</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 混雑サマリー（詳細はリアルタイムタブへ） -->
+  <div style="background:#fff;border-radius:14px;padding:14px 20px;box-shadow:0 1px 6px rgba(0,0,0,0.06);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#0f3460;margin-bottom:6px">いまの混雑サマリー</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700">砂防新道 混雑</span>
+        <span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700">観光新道 やや混雑</span>
+        <span style="background:#dcfce7;color:#166534;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700">平瀬道・別山道・釈迦新道 空き</span>
+      </div>
+    </div>
+    <button onclick="showSectionById('realtime')" style="background:#0f3460;color:#fff;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+      ルート別詳細 →
+    </button>
+  </div>
+
+  <!-- アクセス情報 -->
+  <div class="card">
+    <div class="card-title">交通アクセス状況</div>
+    <div class="card-sub">マイカー規制・シャトルバス運行情報</div>
+    <div class="access-row">
+      <div>
+        <div class="ar-name">市ノ瀬 → 別当出合 シャトルバス</div>
+        <div class="ar-detail">始発 5:00 / 最終 17:00（15分間隔）| 片道 ¥800</div>
+      </div>
+      <div class="ar-status ar-open">運行中</div>
+    </div>
+    <div class="access-row">
+      <div>
+        <div class="ar-name">別当出合 駐車場</div>
+        <div class="ar-detail">マイカー規制中（7/10〜10/10）。市ノ瀬駐車場をご利用ください</div>
+      </div>
+      <div class="ar-status ar-closed">規制中</div>
+    </div>
+    <div class="access-row">
+      <div>
+        <div class="ar-name">市ノ瀬 駐車場（700台）</div>
+        <div class="ar-detail">現在の混雑状況（推定）</div>
+      </div>
+      <div class="ar-status ar-busy">やや混雑</div>
+    </div>
+    <div class="access-row">
+      <div>
+        <div class="ar-name">大白川 駐車場（平瀬道）</div>
+        <div class="ar-detail">約60台 / 岐阜県側からのアクセス</div>
+      </div>
+      <div class="ar-status ar-open">空きあり</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB 2: リアルタイム (Layer 2 - 行動中支援)                          -->
+<!-- ================================================================ -->
+<div id="section-realtime" class="page-section">
+
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span class="live-dot"></span>
+      <div class="card-title" style="margin-bottom:0">リアルタイム 白山全体の状況</div>
+    </div>
+    <div class="mountain-stat">
+      <div class="stat-item"><div class="stat-value">387</div><div class="stat-label">本日の入山者</div></div>
+      <div class="stat-item"><div class="stat-value">298</div><div class="stat-label">本日の下山者</div></div>
+      <div class="stat-item"><div class="stat-value danger">89</div><div class="stat-label">現在 山にいる人</div></div>
+    </div>
+  </div>
+
+  <!-- リアルタイム気象（API連動） -->
+  <div class="card" style="padding:14px 20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0;font-size:14px">いまの山岳気象</div>
+      <div style="font-size:10px;color:#94a3b8">Open-Meteo API（山頂 2,702m）</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;text-align:center">
+      <div style="background:#f8fafc;border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:#8a9ab5">天気</div>
+        <div id="rt-weather-icon" style="font-size:22px;margin:2px 0">⏳</div>
+        <div id="rt-weather-text" style="font-size:13px;font-weight:700">--</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:#8a9ab5">山頂気温</div>
+        <div style="font-size:22px;margin:2px 0">🌡️</div>
+        <div id="rt-summit-temp" style="font-size:13px;font-weight:700">--°C</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:#8a9ab5">風速</div>
+        <div style="font-size:22px;margin:2px 0">💨</div>
+        <div id="rt-wind" style="font-size:13px;font-weight:700">-- m/s</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:#8a9ab5">降水確率</div>
+        <div style="font-size:22px;margin:2px 0">🌧</div>
+        <div id="rt-precip" style="font-size:13px;font-weight:700">--%</div>
+      </div>
+      <div style="background:#fef2f2;border-radius:10px;padding:10px;border:1px solid #fca5a5">
+        <div style="font-size:10px;color:#991b1b">日没</div>
+        <div style="font-size:22px;margin:2px 0">🌆</div>
+        <div id="rt-sunset" style="font-size:13px;font-weight:700;color:#dc2626">--:--</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:10px">
+        <div style="font-size:10px;color:#8a9ab5">日没まで</div>
+        <div style="font-size:22px;margin:2px 0">⏱️</div>
+        <div id="rt-remaining" style="font-size:13px;font-weight:700;color:#ca8a04">--</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 下山遅延リスク -->
+  <div class="safety-alert" id="descentAlert">
+    <div class="safety-alert-title">下山遅延アラート</div>
+    <div class="safety-alert-text">14:00時点で山中に89名が滞留しています。砂防新道の弥陀ヶ原〜室堂区間で下り渋滞が発生中です。日没（18:45）までに十分な時間を確保してください。</div>
+  </div>
+
+  <div class="insight">
+    <div class="insight-title">いまのポイント</div>
+    <div class="insight-text">下山のピークを迎えています。砂防新道の甚之助避難小屋付近で一時的な渋滞が発生中。下山ルートに観光新道を選ぶと渋滞を回避できます。</div>
+  </div>
+
+  <!-- ルート別詳細 -->
+  <div class="card">
+    <div class="card-title">登山口別 詳細状況</div>
+    <div class="card-sub">タップで各ルートの時間帯グラフを表示</div>
+    <div class="route-grid">
+      <div class="route-card lv-high">
+        <div class="rc-name">砂防新道</div>
+        <div class="rc-level">混雑</div>
+        <div class="rc-count">入山 278 / 下山 215</div>
+        <div class="rc-badge">山中 63人</div>
+      </div>
+      <div class="route-card lv-mid">
+        <div class="rc-name">観光新道</div>
+        <div class="rc-level">やや混雑</div>
+        <div class="rc-count">入山 52 / 下山 41</div>
+        <div class="rc-badge">山中 11人</div>
+      </div>
+      <div class="route-card lv-low">
+        <div class="rc-name">平瀬道</div>
+        <div class="rc-level">空き</div>
+        <div class="rc-count">入山 31 / 下山 24</div>
+        <div class="rc-badge">山中 7人</div>
+      </div>
+      <div class="route-card lv-low">
+        <div class="rc-name">別山道</div>
+        <div class="rc-level">空き</div>
+        <div class="rc-count">入山 18 / 下山 13</div>
+        <div class="rc-badge">山中 5人</div>
+      </div>
+      <div class="route-card lv-low">
+        <div class="rc-name">釈迦新道</div>
+        <div class="rc-level">空き</div>
+        <div class="rc-count">入山 8 / 下山 5</div>
+        <div class="rc-badge">山中 3人</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日のグラフ -->
+  <div class="card">
+    <div class="card-title">本日の入山・下山推移</div>
+    <div class="card-sub">1時間ごとの累計カウント</div>
+    <canvas id="realtimeChart" height="220"></canvas>
+  </div>
+
+  <!-- 時間帯別（旧タブから統合） -->
+  <div class="insight">
+    <div class="insight-title">時間帯データの活用法</div>
+    <div class="insight-text">登山のピークは6〜7時台で、全入山者の約57%がこの時間帯に集中します。5時台の出発、または8時半以降の出発で渋滞を大幅に回避できます。下山は11時頃（宿泊者）と14〜15時頃（日帰り）に2つのピークがあります。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">時間帯別 入山・下山者数</div>
+    <div class="card-sub">本日のデータ（1時間ごと）</div>
+    <canvas id="hourlyChart" height="240"></canvas>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB 4: ルート選び                                                 -->
+<!-- ================================================================ -->
+<div id="section-route" class="page-section">
+
+  <div class="insight">
+    <div class="insight-title">あなたに合ったルートを選ぶ</div>
+    <div class="insight-text">白山の登山者の約73%が砂防新道に集中しています。観光新道は花と展望が美しく、平瀬道は白水湖を望む静かな山歩きが楽しめます。混雑を避けるだけで登山体験は劇的に変わります。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ルート比較</div>
+    <div class="card-sub">現在の混雑度・所要時間・特徴</div>
+    <div style="margin-top:8px">
+      <div class="recommend-card">
+        <div class="rec-left">
+          <div class="rec-name" style="color:#dc2626">砂防新道 <span style="font-size:11px;color:#8a9ab5;font-weight:400">別当出合→室堂</span></div>
+          <div class="rec-info">利用率 72.9% | 標高差 1,450m | 初級〜中級</div>
+          <div class="rec-info">最もポピュラー。整備が行き届いているが混雑しやすい。甚之助避難小屋でトイレ・休憩可。</div>
+        </div>
+        <div class="rec-right"><div class="rec-time">約5h</div><div style="font-size:11px;color:#dc2626;font-weight:700">混雑中</div></div>
+      </div>
+      <div class="recommend-card recommended">
+        <div class="rec-left">
+          <div class="rec-name" style="color:#16a34a">観光新道 <span style="font-size:11px;color:#8a9ab5;font-weight:400">別当出合→室堂</span></div>
+          <div class="rec-info">利用率 10.9% | 標高差 1,450m | 中級</div>
+          <div class="rec-info">尾根沿いの展望が素晴らしい。7〜8月は高山植物の花畑。砂防新道と同じ起点で比較しやすい。</div>
+        </div>
+        <div class="rec-right"><div class="rec-time">約5.5h</div><div class="rec-tag">おすすめ</div></div>
+      </div>
+      <div class="recommend-card recommended">
+        <div class="rec-left">
+          <div class="rec-name" style="color:#16a34a">平瀬道 <span style="font-size:11px;color:#8a9ab5;font-weight:400">大白川→室堂</span></div>
+          <div class="rec-info">利用率 9.4% | 標高差 1,300m | 中級</div>
+          <div class="rec-info">岐阜県側から。白水湖の眺望。静かな原生林歩き。大白川露天風呂が下山後の楽しみ。</div>
+        </div>
+        <div class="rec-right"><div class="rec-time">約5.5h</div><div class="rec-tag">おすすめ</div></div>
+      </div>
+      <div class="recommend-card">
+        <div class="rec-left">
+          <div class="rec-name">別山道 <span style="font-size:11px;color:#8a9ab5;font-weight:400">市ノ瀬→別山→室堂</span></div>
+          <div class="rec-info">利用率 4.9% | 標高差 1,700m | 中級〜上級</div>
+          <div class="rec-info">ロングルート。別山経由で白山を目指す健脚向き。チブリ尾根の眺望が見事。</div>
+        </div>
+        <div class="rec-right"><div class="rec-time">約7h</div></div>
+      </div>
+      <div class="recommend-card">
+        <div class="rec-left">
+          <div class="rec-name">釈迦新道 <span style="font-size:11px;color:#8a9ab5;font-weight:400">市ノ瀬→室堂</span></div>
+          <div class="rec-info">利用率 1.9% | 標高差 1,500m | 上級</div>
+          <div class="rec-info">最も静かなルート。深い原生林。経験者向き。</div>
+        </div>
+        <div class="rec-right"><div class="rec-time">約7.5h</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 組み合わせ提案 -->
+  <div class="card">
+    <div class="card-title">渋滞回避の裏ワザ：上りと下りで違うルート</div>
+    <div class="card-sub">登りと下りでルートを変えると混雑を避けつつ多様な景色を楽しめます</div>
+    <div style="margin-top:12px">
+      <div style="padding:14px;background:#f0fdf4;border-radius:10px;margin-bottom:10px;border:1px solid #bbf7d0">
+        <div style="font-size:14px;font-weight:700;color:#166534">パターンA：観光新道（登り）→ 砂防新道（下り）</div>
+        <div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6">登りは花を楽しみながら静かに歩き、下りは整備された砂防新道で安全に下山。日帰り初心者におすすめ。</div>
+      </div>
+      <div style="padding:14px;background:#eff6ff;border-radius:10px;margin-bottom:10px;border:1px solid #bfdbfe">
+        <div style="font-size:14px;font-weight:700;color:#1e40af">パターンB：砂防新道（登り）→ 観光新道（下り）</div>
+        <div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6">朝のうちにピーク前出発で砂防新道を登り、下山ラッシュを観光新道で回避。展望を楽しみながら下山。</div>
+      </div>
+      <div style="padding:14px;background:#faf5ff;border-radius:10px;border:1px solid #e9d5ff">
+        <div style="font-size:14px;font-weight:700;color:#7c3aed">パターンC：平瀬道で往復（岐阜側から）</div>
+        <div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6">石川県側の混雑を完全回避。下山後に大白川露天風呂に入れるのも魅力。駐車場も比較的空き。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 登山計画（旧タブから統合） -->
+  <div class="card">
+    <div class="card-title">白山 基本情報</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px;margin-top:16px;text-align:center">
+      <div><div style="font-size:26px;font-weight:800;color:#0f3460">2,702m</div><div style="font-size:11px;color:#8a9ab5">御前峰（最高峰）</div></div>
+      <div><div style="font-size:26px;font-weight:800;color:#0f3460">47,700ha</div><div style="font-size:11px;color:#8a9ab5">公園面積</div></div>
+      <div><div style="font-size:26px;font-weight:800;color:#0f3460">5〜10月</div><div style="font-size:11px;color:#8a9ab5">登山シーズン</div></div>
+      <div><div style="font-size:26px;font-weight:800;color:#0f3460">約5万人</div><div style="font-size:11px;color:#8a9ab5">年間入山者数</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">快適な登山のためのヒント</div>
+    <div class="card-sub">過去データと登山者の声から導き出された知見</div>
+    <div class="tips-grid" style="margin-top:12px">
+      <div class="tip-card">
+        <div class="tip-icon">&#9200;</div>
+        <div class="tip-title">出発時間をずらす</div>
+        <div class="tip-text">6〜7時のピーク前（5時台）か後（8時半以降）に出発すると、登山道の渋滞を回避でき、1時間以上の時短になることも。</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">&#128507;</div>
+        <div class="tip-title">別ルートを検討する</div>
+        <div class="tip-text">砂防新道が混雑時は、観光新道や平瀬道がおすすめ。登りと下りで別ルートを使うと景色の変化も楽しめます。</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">&#128197;</div>
+        <div class="tip-title">平日を活用する</div>
+        <div class="tip-text">土日は平日の約3倍の登山者数。火〜木が最も空いています。連休の翌火曜は特に穴場。</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">&#127810;</div>
+        <div class="tip-title">秋シーズンを狙う</div>
+        <div class="tip-text">9月は夏季の約1/5の人数。紅葉と静かな山を楽しめます。気温も快適。</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">&#128652;</div>
+        <div class="tip-title">アクセスを事前確認</div>
+        <div class="tip-text">マイカー規制期間は市ノ瀬からシャトルバス。始発の5時台は混雑します。平瀬道なら規制なし。</div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">&#9889;</div>
+        <div class="tip-title">午後の雷に注意</div>
+        <div class="tip-text">夏季は午後に雷雲が発生しやすい。稜線上は避雷場所がないため、12時までに室堂到着が理想。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">年間登山者数の推移</div>
+    <div class="card-sub">2008年〜2023年の長期トレンド（全登山口合計）</div>
+    <canvas id="yearlyTrendChart" height="220"></canvas>
+  </div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB 5: 混雑予測 (Layer 1+3 - 出発判断 + 計画)                     -->
+<!-- ================================================================ -->
+<div id="section-forecast" class="page-section">
+
+  <div class="insight">
+    <div class="insight-title">混雑予測の仕組み</div>
+    <div class="insight-text">過去16年分のデータを基に、曜日・季節・祝日・天候を考慮して混雑度を予測しています。精度は約85%（過去検証結果）。土曜日が最も混雑し、火〜木が空いています。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">今後2週間の混雑予測カレンダー</div>
+    <div class="card-sub">砂防新道の予測（緑=空き / 黄=やや混雑 / 赤=混雑）</div>
+    <div class="forecast-grid" style="margin-top:12px">
+      <div class="fc-header">月</div><div class="fc-header">火</div><div class="fc-header">水</div><div class="fc-header">木</div><div class="fc-header">金</div><div class="fc-header" style="color:#1e40af">土</div><div class="fc-header" style="color:#dc2626">日</div>
+      <div class="fc-cell fc-mid"><div class="fc-date">20</div><div class="fc-level">やや混雑</div></div>
+      <div class="fc-cell fc-low"><div class="fc-date">21</div><div class="fc-level">空き</div></div>
+      <div class="fc-cell fc-low"><div class="fc-date">22</div><div class="fc-level">空き</div></div>
+      <div class="fc-cell fc-low"><div class="fc-date">23</div><div class="fc-level">空き</div></div>
+      <div class="fc-cell fc-mid"><div class="fc-date">24</div><div class="fc-level">やや混雑</div></div>
+      <div class="fc-cell fc-high"><div class="fc-date">25</div><div class="fc-level">混雑</div></div>
+      <div class="fc-cell fc-high"><div class="fc-date">26</div><div class="fc-level">混雑</div></div>
+      <div class="fc-cell fc-mid"><div class="fc-date">27</div><div class="fc-level">やや混雑</div></div>
+      <div class="fc-cell fc-low"><div class="fc-date">28</div><div class="fc-level">空き</div></div>
+      <div class="fc-cell fc-low"><div class="fc-date">29</div><div class="fc-level">空き</div></div>
+      <div class="fc-cell fc-low"><div class="fc-date">30</div><div class="fc-level">空き</div></div>
+      <div class="fc-cell fc-mid"><div class="fc-date">31</div><div class="fc-level">やや混雑</div></div>
+      <div class="fc-cell fc-high"><div class="fc-date">1</div><div class="fc-level">混雑</div></div>
+      <div class="fc-cell fc-high"><div class="fc-date">2</div><div class="fc-level">混雑</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">曜日別 平均入山者数</div>
+    <div class="card-sub">7〜8月の過去平均（全登山口合計）</div>
+    <canvas id="forecastDowChart" height="200"></canvas>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB 6: 安全情報                                                   -->
+<!-- ================================================================ -->
+<div id="section-safety" class="page-section">
+
+  <div class="safety-alert" style="background:#fff8e1;border-color:#f59e0b">
+    <div class="safety-alert-title" style="color:#92400e">本日の注意事項</div>
+    <div class="safety-alert-text" style="color:#78350f">午後から雷雨の可能性があります（降水確率40%）。室堂到着後は早めの判断をお願いします。15時以降の山頂付近の行動は控えてください。</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">下山遅延リスクモニター</div>
+    <div class="card-sub">日没までに全員が安全に下山できるかを監視しています</div>
+    <div class="mountain-stat" style="padding:20px 0">
+      <div class="stat-item"><div class="stat-value danger">89</div><div class="stat-label">現在の山中滞留者</div></div>
+      <div class="stat-item"><div class="stat-value" id="safety-sunset-val">--:--</div><div class="stat-label">本日の日没時刻</div></div>
+      <div class="stat-item"><div class="stat-value" id="safety-remaining-val" style="color:#ca8a04">--</div><div class="stat-label">日没まで残り</div></div>
+    </div>
+    <div class="insight">
+      <div class="insight-title">自動判定</div>
+      <div class="insight-text">現在のペースでは17:30頃までに概ね全員が下山完了する見込みです。ただし砂防新道の弥陀ヶ原付近で渋滞が発生しており、この区間を通過する方は通常より30分程度の遅延を見込んでください。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">安全登山チェックリスト</div>
+    <div class="card-sub">出発前に確認してください</div>
+    <ul class="checklist">
+      <li><span class="check-icon">1</span><div><strong>登山届</strong>を提出しましたか？（石川県は提出が義務化されています）</div></li>
+      <li><span class="check-icon">2</span><div><strong>天気予報</strong>を確認しましたか？午後の雷雨に注意。稜線上は遮るものがありません。</div></li>
+      <li><span class="check-icon">3</span><div><strong>下山タイムリミット</strong>を設定しましたか？日没2時間前までに登山口へ戻る計画を。</div></li>
+      <li><span class="check-icon">4</span><div><strong>十分な水と食料</strong>を持っていますか？夏の白山は1日2L以上の水分補給が必要です。</div></li>
+      <li><span class="check-icon">5</span><div><strong>ヘッドランプ</strong>を持っていますか？万が一の下山遅延に備え必携です。</div></li>
+      <li><span class="check-icon">6</span><div><strong>携帯電話</strong>は充電されていますか？砂防新道は概ね電波が入りますが、一部不通区間あり。</div></li>
+    </ul>
+  </div>
+</div>
+
+
+</div><!-- /container -->
+
+<div class="site-footer">
+  白山登山ナビ | 白山国立公園 登山者モニタリングシステム<br>
+  データは約1時間ごとに更新されます。天候等により実際の状況と異なる場合があります。<br>
+  <span style="color:#475569">緊急時は 110番（警察）または 119番（消防）へ</span>
+</div>
+
+<script>
+// ===== Navigation =====
+function showSection(id) {
+  document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach((el, i) => {
+    const ids = ['today','realtime','route','forecast','safety'];
+    el.classList.toggle('active', ids[i] === id);
+  });
+  _initTab(id);
+}
+// ボタン等から event なしで呼ぶ用
+function showSectionById(id) {
+  showSection(id);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function _initTab(id) {
+  if (id === 'realtime' && !window._rtInit) initRealtime();
+  if (id === 'route'    && !window._routeInit) initRouteGuide();
+  if (id === 'forecast' && !window._fcInit) initForecast();
+}
+
+// ===== Realtime charts =====
+function initRealtime() {
+  window._rtInit = true;
+  const hours = ['04','05','06','07','08','09','10','11','12','13','14'];
+  const cumUp = [2,17,80,165,237,288,326,351,369,381,387];
+  const cumDown = [0,0,2,7,15,27,55,100,152,220,298];
+  const onMtn = cumUp.map((v,i) => v - cumDown[i]);
+  new Chart(document.getElementById('realtimeChart'), {
+    type: 'line',
+    data: {
+      labels: hours.map(h => h + ':00'),
+      datasets: [
+        { label: '累計入山', data: cumUp, borderColor: '#0f3460', backgroundColor: 'rgba(15,52,96,0.08)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: '累計下山', data: cumDown, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,106,0.08)', fill: true, tension: 0.3, pointRadius: 3 },
+        { label: '山中滞留', data: onMtn, borderColor: '#dc2626', borderDash: [6,3], tension: 0.3, pointRadius: 3 }
+      ]
+    },
+    options: { responsive: true, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, title: { display: true, text: '人数' } } } }
+  });
+  // 時間帯別チャート（統合）
+  const hoursBar = ['04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00'];
+  new Chart(document.getElementById('hourlyChart'), {
+    type: 'bar',
+    data: {
+      labels: hoursBar,
+      datasets: [
+        { label: '入山', data: [2,15,63,85,72,51,38,25,18,12,6], backgroundColor: 'rgba(15,52,96,0.85)', borderRadius: 4 },
+        { label: '下山', data: [0,0,2,5,8,12,28,45,52,68,78], backgroundColor: 'rgba(234,179,8,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, title: { display: true, text: '人数' } } } }
+  });
+}
+
+
+// ===== Forecast charts =====
+function initForecast() {
+  window._fcInit = true;
+  new Chart(document.getElementById('forecastDowChart'), {
+    type: 'bar',
+    data: {
+      labels: ['月','火','水','木','金','土','日'],
+      datasets: [{
+        label: '平均入山者数',
+        data: [95, 78, 82, 88, 110, 285, 242],
+        backgroundColor: ['#60a5fa','#93c5fd','#93c5fd','#93c5fd','#60a5fa','#ef4444','#f87171'],
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: '平均入山者数（人）' } } } }
+  });
+}
+
+// ===================================================================
+// 天気 API 取得・キャッシュ・UI反映
+//
+// 【本番実装方針（バックエンド側）】
+//   - FastAPI（Railway）が1時間ごとにOpen-Meteo APIを呼んで結果をSupabaseにキャッシュ
+//   - フロント（Next.js）は /api/v1/public/weather を呼ぶだけ
+//   - APIコールはサーバー1台のみ → 10,000/日の制限に対して24回/日で問題なし
+//
+// 【このHTMLモックでの実装】
+//   - ブラウザから直接Open-Meteo APIを呼ぶ（デモ用途）
+//   - ブラウザ内メモリキャッシュ（1時間TTL）でセッション中の重複呼び出しを防止
+// ===================================================================
+
+const HAKUSAN = { lat: 36.15, lon: 136.77, summit: 2702, trailhead: 1260 };
+let _wxCache = null, _wxCachedAt = 0;
+const WX_TTL = 3600000; // 1時間 ms
+
+// WMO天気コード → 日本語
+function wmoToJa(c) {
+  if (c === 0)  return { text: '快晴',      icon: '☀️',  warn: false };
+  if (c <= 2)   return { text: '晴れ',      icon: '🌤️', warn: false };
+  if (c === 3)  return { text: '曇り',      icon: '☁️',  warn: false };
+  if (c <= 48)  return { text: '霧',        icon: '🌫️', warn: true  };
+  if (c <= 55)  return { text: '霧雨',      icon: '🌦️', warn: false };
+  if (c <= 65)  return { text: '雨',        icon: '🌧️', warn: true  };
+  if (c <= 77)  return { text: '雪',        icon: '❄️',  warn: true  };
+  if (c <= 82)  return { text: 'にわか雨',  icon: '🌦️', warn: false };
+  if (c <= 86)  return { text: 'にわか雪',  icon: '🌨️', warn: true  };
+  return        { text: '雷雨',            icon: '⛈️',  warn: true  };
+}
+
+// 山頂気温 → 服装目安
+function tempToClothing(t) {
+  if (t < 0)   return { main: '厳冬装備必須',     sub: '凍傷・低体温症に注意' };
+  if (t < 5)   return { main: 'ダウン＋防風着',   sub: '体感は非常に寒冷' };
+  if (t < 10)  return { main: '長袖＋フリース',   sub: '防寒着は必ず持参' };
+  if (t < 15)  return { main: '長袖＋薄手の上着', sub: '標高差で肌寒い' };
+  if (t < 20)  return { main: '長袖（防寒着持参）',sub: '稜線では体感低下' };
+  return        { main: '半袖可（防寒着必携）',   sub: '山頂は下界より涼しい' };
+}
+
+// 風速 → コメント
+function windNote(ms) {
+  if (ms >= 15) return '強風: 稜線歩行に要注意';
+  if (ms >= 10) return '風強め: 体感温度が大幅低下';
+  if (ms >= 6)  return '稜線上は体感温度低下';
+  return        '風は比較的穏やか';
+}
+
+// 天候グレード（A/B/C）
+function weatherGrade(code, wind, precip) {
+  if (code >= 95 || wind >= 15)           return { g: 'C', cls: 'ji-bad'  };
+  if (code >= 61 || wind >= 10 || precip >= 60) return { g: 'B', cls: 'ji-warn' };
+  return                                         { g: 'A', cls: 'ji-good' };
+}
+
+// ISO → HH:MM (JST)
+function toHHMM(iso) {
+  const isoStr = iso.includes('+') ? iso : iso + '+09:00';
+  return new Date(isoStr).toLocaleTimeString('ja-JP',
+    { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
+}
+
+// 日没 N時間前
+function subHours(iso, h) {
+  const isoStr = iso.includes('+') ? iso : iso + '+09:00';
+  const d = new Date(isoStr); d.setHours(d.getHours() - h);
+  return d.toLocaleTimeString('ja-JP',
+    { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Tokyo' });
+}
+
+// 日没まで残り時間テキスト
+function remaining(iso) {
+  const isoStr = iso.includes('+') ? iso : iso + '+09:00';
+  const diff = new Date(isoStr) - new Date();
+  if (diff <= 0) return '日没済み';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return `${h}時間${m}分`;
+}
+
+// DOM更新ヘルパー
+function _tx(id, text) { const e = document.getElementById(id); if (e) e.textContent = text; }
+function _st(id, style, val) { const e = document.getElementById(id); if (e) e.style[style] = val; }
+
+// UIに反映
+function applyWeather(d) {
+  const wmo    = wmoToJa(d.wc);
+  const grade  = weatherGrade(d.wc, d.wind, d.precip);
+  const cloth  = tempToClothing(d.tSummit);
+  const feel   = Math.round(d.tSummit - d.wind * 0.7);
+  const diff   = d.tTrail - d.tSummit;
+  const sunsetHM      = toHHMM(d.sunset);
+  const sunriseHM     = toHHMM(d.sunrise);
+  const descentLimit  = subHours(d.sunset, 2);
+
+  // ---- 気象カード ----
+  _tx('wi-weather-icon',  wmo.icon);
+  _tx('wi-weather-text',  wmo.text);
+  _tx('wi-weather-sub',   wmo.warn ? '⚠️ 天候注意' : '登山日和');
+  _tx('wi-summit-temp',   `${d.tSummit}°C`);
+  _tx('wi-summit-feel',   `体感 ${feel}°C（風${d.wind}m/s）`);
+  _tx('wi-trail-temp',    `${d.tTrail}°C`);
+  _tx('wi-trail-diff',    `山頂より約+${Math.round(diff)}°C（標高補正）`);
+  _tx('wi-wind-speed',    `${d.wind} m/s`);
+  _tx('wi-wind-note',     windNote(d.wind));
+  _tx('wi-precip-val',    `${d.precip}%`);
+  _st('wi-precip-val','color', d.precip>=60?'#dc2626':d.precip>=40?'#ca8a04':'#0f3460');
+  _tx('wi-sunset',        sunsetHM);
+  _tx('wi-descent-limit', `下山リミット ${descentLimit}`);
+  _tx('wi-sunrise',       sunriseHM);
+  _tx('wi-sunrise-sub',   parseInt(sunriseHM)<5 ? 'ご来光登山可' : 'ご来光は早出が必要');
+  _tx('wi-clothing',      cloth.main);
+  _tx('wi-clothing-sub',  cloth.sub);
+
+  // ---- 判定バナー（天候スコア） ----
+  const jiEl = document.getElementById('ji-weather-item');
+  if (jiEl) jiEl.className = `judgment-item ${grade.cls}`;
+  _tx('ji-weather-grade',  grade.g);
+  _tx('ji-weather-detail', `${wmo.text} / 風${d.wind}m/s`);
+
+  // ---- リアルタイムタブ（気象コンパクト） ----
+  _tx('rt-weather-icon', wmo.icon);
+  _tx('rt-weather-text', wmo.text);
+  _tx('rt-summit-temp',  `${d.tSummit}°C`);
+  _tx('rt-wind',         `${d.wind} m/s`);
+  _tx('rt-precip',       `${d.precip}%`);
+  _tx('rt-sunset',       sunsetHM);
+  _tx('rt-remaining',    remaining(d.sunset));
+
+  // ---- 安全タブ（日没・残り） ----
+  _tx('safety-sunset-val',    sunsetHM);
+  _tx('safety-remaining-val', remaining(d.sunset));
+
+  // ---- ヘッダー更新時刻 ----
+  const now = new Date();
+  _tx('header-update-time',
+    `最終更新: ${now.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'})} ` +
+    now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',hour12:false}));
+
+  // ---- ステータス表示 ----
+  _tx('weather-fetch-status', '✓ データ取得済み');
+  _st('weather-fetch-status', 'color', '#16a34a');
+}
+
+// Open-Meteo API フェッチ（メモリキャッシュ付き）
+async function fetchWeather() {
+  const now = Date.now();
+  if (_wxCache && (now - _wxCachedAt) < WX_TTL) {
+    applyWeather(_wxCache);
+    return;
+  }
+  _tx('weather-fetch-status', '取得中...');
+
+  const base = 'https://api.open-meteo.com/v1/forecast';
+  const params = new URLSearchParams({
+    latitude: HAKUSAN.lat, longitude: HAKUSAN.lon,
+    elevation: HAKUSAN.summit,
+    daily: 'sunrise,sunset,temperature_2m_max,wind_speed_10m_max,weather_code',
+    hourly: 'precipitation_probability',
+    timezone: 'Asia/Tokyo',
+    forecast_days: 1,
+    wind_speed_unit: 'ms'
+  });
+
+  try {
+    const res  = await fetch(`${base}?${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    // 午後（12〜18時）の最大降水確率
+    const precipPm = json.hourly.precipitation_probability
+      .filter((_,i) => {
+        const isoStr = json.hourly.time[i].includes('+') ? json.hourly.time[i] : json.hourly.time[i] + '+09:00';
+        const h = new Date(isoStr).getHours();
+        return h >= 12 && h <= 18;
+      })
+      .reduce((a,b) => Math.max(a,b), 0);
+
+    // 登山口気温: 標高差1,442m × 0.65°C/100m ≈ +9.4°C
+    const lapseCorr = (HAKUSAN.summit - HAKUSAN.trailhead) / 100 * 0.65;
+    const data = {
+      wc:      json.daily.weather_code[0],
+      tSummit: Math.round(json.daily.temperature_2m_max[0]),
+      tTrail:  Math.round(json.daily.temperature_2m_max[0] + lapseCorr),
+      wind:    Math.round(json.daily.wind_speed_10m_max[0]),
+      precip:  precipPm,
+      sunrise: json.daily.sunrise[0],
+      sunset:  json.daily.sunset[0],
+    };
+
+    _wxCache = data; _wxCachedAt = Date.now();
+    applyWeather(data);
+
+  } catch (err) {
+    console.error('[Weather]', err);
+    _tx('weather-fetch-status', '⚠ 取得失敗（モックデータ表示中）');
+    _st('weather-fetch-status', 'color', '#dc2626');
+    // フォールバック（デモ用固定値）
+    const today = new Date().toISOString().slice(0,10);
+    applyWeather({
+      wc:1, tSummit:8, tTrail:18, wind:7, precip:40,
+      sunrise:`${today}T04:52:00+09:00`,
+      sunset: `${today}T18:45:00+09:00`,
+    });
+  }
+}
+
+// 初回取得 & 1時間ごとに自動再取得
+fetchWeather();
+setInterval(fetchWeather, WX_TTL);
+
+// ===== Guide charts =====
+function initRouteGuide() {
+  window._routeInit = true;
+  new Chart(document.getElementById('yearlyTrendChart'), {
+    type: 'line',
+    data: {
+      labels: ['2008','2009','2010','2011','2012','2013','2014','2015','2016','2017','2018','2019','2020','2021','2022','2023'],
+      datasets: [{
+        label: '年間入山者数',
+        data: [42000,44000,41000,38000,45000,48000,52000,55000,58000,63000,56000,54000,28000,35000,48000,51000],
+        borderColor: '#0f3460',
+        backgroundColor: 'rgba(15,52,96,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#0f3460'
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, title: { display: true, text: '入山者数（人）' } } } }
+  });
+}
+</script>
+</body>
+</html>

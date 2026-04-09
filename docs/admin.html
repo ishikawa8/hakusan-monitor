@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白山登山者モニタリング - 管理者ダッシュボード</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', 'Hiragino Sans', sans-serif; background: #f0f2f5; color: #333; }
+/* Sidebar */
+.sidebar { position: fixed; left: 0; top: 0; width: 240px; height: 100vh; background: #1a2332; color: #fff; padding: 20px 0; overflow-y: auto; z-index: 100; }
+.sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid #2a3a4e; margin-bottom: 10px; }
+.sidebar-logo h2 { font-size: 15px; color: #8cb4e0; }
+.sidebar-logo p { font-size: 11px; color: #6a7a8e; margin-top: 4px; }
+.nav-item { display: flex; align-items: center; padding: 12px 20px; color: #8a9ab5; font-size: 14px; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+.nav-item:hover { background: #243044; color: #fff; }
+.nav-item.active { background: #2a5298; color: #fff; }
+.nav-icon { width: 20px; margin-right: 12px; text-align: center; }
+.nav-section { padding: 12px 20px 6px; font-size: 11px; color: #4a5a6e; text-transform: uppercase; letter-spacing: 1px; }
+/* Main */
+.main { margin-left: 240px; padding: 24px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.header h1 { font-size: 24px; color: #1a2332; }
+.header-meta { display: flex; align-items: center; gap: 16px; }
+.badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-live { background: #dcfce7; color: #166534; }
+.last-update { font-size: 12px; color: #888; }
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.card-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+.card-value { font-size: 32px; font-weight: 700; }
+.card-sub { font-size: 12px; color: #888; margin-top: 4px; }
+.card-trend { display: inline-flex; align-items: center; font-size: 12px; padding: 2px 8px; border-radius: 8px; margin-top: 4px; }
+.trend-up { background: #fef2f2; color: #dc2626; }
+.trend-down { background: #dcfce7; color: #166534; }
+/* Chart panels */
+.panel { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.panel-title { font-size: 16px; font-weight: 600; color: #1a2332; }
+.panel-actions { display: flex; gap: 8px; }
+.btn-sm { padding: 4px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; cursor: pointer; background: #fff; color: #555; }
+.btn-sm.active { background: #2a5298; color: #fff; border-color: #2a5298; }
+.grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.grid-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+/* Table */
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 10px 12px; font-size: 12px; color: #888; border-bottom: 2px solid #eee; font-weight: 600; }
+td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dot-green { background: #22c55e; }
+.dot-yellow { background: #eab308; }
+.dot-red { background: #ef4444; }
+.dot-gray { background: #999; }
+/* Device status */
+.battery-bar { width: 40px; height: 12px; background: #eee; border-radius: 6px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+.battery-fill { height: 100%; border-radius: 6px; }
+.bat-high { background: #22c55e; }
+.bat-mid { background: #eab308; }
+.bat-low { background: #ef4444; }
+/* Alert list */
+.alert-item { display: flex; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #f0f0f0; gap: 10px; }
+.alert-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.alert-warn { background: #fef3c7; }
+.alert-info { background: #dbeafe; }
+.alert-danger { background: #fee2e2; }
+.alert-text { font-size: 13px; }
+.alert-time { font-size: 11px; color: #999; }
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.tab { padding: 6px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid transparent; color: #666; }
+.tab.active { background: #2a5298; color: #fff; }
+.tab:hover:not(.active) { background: #f0f2f5; }
+/* Export section */
+.export-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.export-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.export-card:hover { border-color: #2a5298; background: #f8faff; }
+.export-icon { font-size: 24px; margin-bottom: 8px; }
+.export-label { font-size: 13px; font-weight: 600; }
+.export-desc { font-size: 11px; color: #888; margin-top: 4px; }
+/* Calibration */
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-size: 12px; color: #888; margin-bottom: 4px; }
+.form-group input, .form-group select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.correction-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.cb-sunny { background: #fef3c7; color: #92400e; }
+.cb-cloudy { background: #e0e7ff; color: #3730a3; }
+.cb-rainy { background: #dbeafe; color: #1e40af; }
+/* Progress bar */
+.progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+/* Heatmap cell */
+.heatmap-cell { display: inline-block; width: 28px; height: 28px; border-radius: 4px; margin: 1px; text-align: center; line-height: 28px; font-size: 10px; color: #fff; }
+/* Site ROI */
+.roi-positive { color: #166534; font-weight: 600; }
+.roi-negative { color: #dc2626; font-weight: 600; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h2>白山登山者<br>モニタリング</h2>
+    <p>管理者ダッシュボード</p>
+  </div>
+  <div class="nav-section">メイン</div>
+  <a class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> ダッシュボード</a>
+  <a class="nav-item" onclick="showPage('history')"><span class="nav-icon">📈</span> 過去データ分析</a>
+  <a class="nav-item" onclick="showPage('comparison')"><span class="nav-icon">🔄</span> 年度比較</a>
+  <div class="nav-section">精度管理</div>
+  <a class="nav-item" onclick="showPage('calibration')"><span class="nav-icon">🎯</span> 精度補正管理</a>
+  <a class="nav-item" onclick="showPage('camera')"><span class="nav-icon">📷</span> カメラAI解析</a>
+  <a class="nav-item" onclick="showPage('sites')"><span class="nav-icon">📍</span> 設置場所分析</a>
+  <div class="nav-section">管理</div>
+  <a class="nav-item" onclick="showPage('devices')"><span class="nav-icon">📡</span> デバイス管理</a>
+  <div class="nav-section">出力</div>
+  <a class="nav-item" onclick="showPage('export')"><span class="nav-icon">📥</span> レポート出力</a>
+  <div class="nav-section">システム</div>
+  <a class="nav-item" onclick="showPage('settings')"><span class="nav-icon">⚙</span> 設定</a>
+  <a class="nav-item" href="index.html"><span class="nav-icon">🌐</span> 公開サイト確認</a>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+<!-- ========== DASHBOARD ========== -->
+<div id="page-dashboard">
+  <div class="header">
+    <h1>ダッシュボード</h1>
+    <div class="header-meta">
+      <span class="badge badge-live">● LIVE</span>
+      <span class="last-update">最終更新: 2024年7月15日 14:05 JST</span>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">本日の入山者数（全登山口合計）</div>
+      <div class="card-value" style="color:#2a5298">387</div>
+      <div class="card-trend trend-up">▲ 12% 前週同曜日比</div>
+    </div>
+    <div class="card">
+      <div class="card-label">本日の下山者数</div>
+      <div class="card-value">298</div>
+      <div class="card-sub">入山者の77%が下山済み</div>
+    </div>
+    <div class="card">
+      <div class="card-label">現在山中の推定人数</div>
+      <div class="card-value" style="color:#dc2626">89</div>
+      <div class="card-sub">入山 - 下山 の差分</div>
+    </div>
+    <div class="card">
+      <div class="card-label">デバイス稼働率</div>
+      <div class="card-value" style="color:#22c55e">100%</div>
+      <div class="card-sub">5/5台 正常稼働中</div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">時間帯別 入山者・下山者推移（本日）</div>
+        <div class="panel-actions">
+          <button class="btn-sm active">全体</button>
+          <button class="btn-sm">登山口別</button>
+        </div>
+      </div>
+      <canvas id="hourlyChart" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">登山口別 利用割合（本日）</div>
+      </div>
+      <canvas id="routePie" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">アラート</div>
+      <button class="btn-sm">全て表示</button>
+    </div>
+    <div class="alert-item">
+      <div class="alert-icon alert-danger">⚠</div>
+      <div><div class="alert-text">砂防新道が混雑閾値を超過（入山 278人/日、閾値 250人）</div><div class="alert-time">14:00</div></div>
+    </div>
+    <div class="alert-item">
+      <div class="alert-icon alert-warn">⚡</div>
+      <div><div class="alert-text">釈迦新道カウンター バッテリー残量 22%</div><div class="alert-time">12:30</div></div>
+    </div>
+    <div class="alert-item">
+      <div class="alert-icon alert-info">ℹ</div>
+      <div><div class="alert-text">カメラ解析完了: 砂防新道 06:00-07:00 グループ補正 +5人</div><div class="alert-time">08:15</div></div>
+    </div>
+    <div class="alert-item">
+      <div class="alert-icon alert-info">ℹ</div>
+      <div><div class="alert-text">週次レポートが自動生成されました</div><div class="alert-time">昨日 09:00</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== HISTORY ========== -->
+<div id="page-history" style="display:none">
+  <div class="header"><h1>過去データ分析</h1></div>
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">期間別 登山者数</div>
+      <div class="panel-actions">
+        <select class="btn-sm" style="padding:4px 8px"><option>2024年</option><option>2023年</option><option>2022年</option></select>
+        <button class="btn-sm active">月別</button>
+        <button class="btn-sm">週別</button>
+        <button class="btn-sm">日別</button>
+      </div>
+    </div>
+    <canvas id="monthlyChart" height="200"></canvas>
+  </div>
+  <div class="panel">
+    <div class="panel-title" style="margin-bottom:12px">曜日別 平均入山者数</div>
+    <canvas id="dowChart" height="180"></canvas>
+  </div>
+</div>
+
+<!-- ========== YEAR COMPARISON ========== -->
+<div id="page-comparison" style="display:none">
+  <div class="header"><h1>年度比較</h1></div>
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">年度別 月次入山者数比較</div>
+      <div class="panel-actions">
+        <button class="btn-sm active">2024 vs 2023</button>
+        <button class="btn-sm">2024 vs 2017(ピーク年)</button>
+      </div>
+    </div>
+    <canvas id="yearCompChart" height="220"></canvas>
+  </div>
+</div>
+
+<!-- ========== DEVICES ========== -->
+<div id="page-devices" style="display:none">
+  <div class="header"><h1>デバイス管理</h1></div>
+  <div class="panel">
+    <table>
+      <thead><tr><th>デバイスID</th><th>登山口</th><th>タイプ</th><th>ステータス</th><th>バッテリー</th><th>最終通信</th><th>気温</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>hakusan_sabou_01</code></td><td>砂防新道</td><td>IRセンサー</td>
+          <td><span class="status-dot dot-green"></span>正常</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-high" style="width:87%"></div></div> 87%</td>
+          <td>2分前</td><td>18.3°C</td>
+        </tr>
+        <tr>
+          <td><code>hakusan_kanko_01</code></td><td>観光新道</td><td>IRセンサー</td>
+          <td><span class="status-dot dot-green"></span>正常</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-high" style="width:92%"></div></div> 92%</td>
+          <td>5分前</td><td>17.8°C</td>
+        </tr>
+        <tr>
+          <td><code>hakusan_hirase_01</code></td><td>平瀬道</td><td>IRセンサー</td>
+          <td><span class="status-dot dot-green"></span>正常</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-high" style="width:78%"></div></div> 78%</td>
+          <td>8分前</td><td>16.5°C</td>
+        </tr>
+        <tr>
+          <td><code>hakusan_ichinose_01</code></td><td>市ノ瀬・別山道</td><td>IRセンサー</td>
+          <td><span class="status-dot dot-green"></span>正常</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-mid" style="width:55%"></div></div> 55%</td>
+          <td>3分前</td><td>17.1°C</td>
+        </tr>
+        <tr>
+          <td><code>hakusan_shaka_01</code></td><td>釈迦新道</td><td>IRセンサー</td>
+          <td><span class="status-dot dot-yellow"></span>注意</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-low" style="width:22%"></div></div> 22%</td>
+          <td>15分前</td><td>15.9°C</td>
+        </tr>
+        <tr style="background:#f8faff">
+          <td><code>hakusan_cam_sabou_A</code></td><td>砂防新道</td><td>カメラ(A点)</td>
+          <td><span class="status-dot dot-green"></span>正常</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-high" style="width:75%"></div></div> 75%</td>
+          <td>12分前</td><td>-</td>
+        </tr>
+        <tr style="background:#f8faff">
+          <td><code>hakusan_cam_sabou_B</code></td><td>砂防新道</td><td>カメラ(B点)</td>
+          <td><span class="status-dot dot-green"></span>正常</td>
+          <td><div class="battery-bar"><div class="battery-fill bat-high" style="width:73%"></div></div> 73%</td>
+          <td>12分前</td><td>-</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ========== CALIBRATION ========== -->
+<div id="page-calibration" style="display:none">
+  <div class="header"><h1>精度補正管理</h1><div class="header-meta"><span class="badge" style="background:#e0e7ff;color:#3730a3">課題1: カウンター精度向上</span></div></div>
+
+  <!-- Weather-based Correction Factor Table -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">天候別 補正係数テーブル</div>
+      <div class="panel-actions">
+        <select class="btn-sm" style="padding:4px 8px"><option>砂防新道</option><option>観光新道</option><option>平瀬道</option><option>市ノ瀬・別山道</option><option>釈迦新道</option></select>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>天候区分</th><th>上り補正係数</th><th>下り補正係数</th><th>サンプル日数</th><th>信頼度</th><th>有効期間</th><th>操作</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="correction-badge cb-sunny">晴天</span></td>
+          <td><b>1.062</b></td><td><b>1.045</b></td><td>12日</td>
+          <td><div class="progress-bar" style="width:80px"><div class="progress-fill bat-high" style="width:75%"></div></div> 75%</td>
+          <td>2024/5 - 2024/7</td>
+          <td><button class="btn-sm">詳細</button></td>
+        </tr>
+        <tr>
+          <td><span class="correction-badge cb-cloudy">曇天</span></td>
+          <td><b>1.083</b></td><td><b>1.071</b></td><td>8日</td>
+          <td><div class="progress-bar" style="width:80px"><div class="progress-fill bat-mid" style="width:55%"></div></div> 55%</td>
+          <td>2024/5 - 2024/7</td>
+          <td><button class="btn-sm">詳細</button></td>
+        </tr>
+        <tr>
+          <td><span class="correction-badge cb-rainy">雨天</span></td>
+          <td><b>1.124</b></td><td><b>1.098</b></td><td>4日</td>
+          <td><div class="progress-bar" style="width:80px"><div class="progress-fill bat-low" style="width:30%"></div></div> 30%</td>
+          <td>2024/6 - 2024/7</td>
+          <td><button class="btn-sm">詳細</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#888;margin-top:8px">補正係数 = 目視カウント / IRセンサーカウント。1.0超はIRの過小カウント（グループ通過等）を示す。雨天時はレインウェアによるIR感度低下の影響あり。</p>
+  </div>
+
+  <!-- Manual Count Input Form -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">目視カウント入力（キャリブレーション）</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>実施日</label><input type="date" value="2024-07-15"></div>
+      <div class="form-group"><label>登山口</label><select><option>砂防新道</option><option>観光新道</option><option>平瀬道</option><option>市ノ瀬・別山道</option><option>釈迦新道</option></select></div>
+      <div class="form-group"><label>天候</label><select><option>晴天</option><option>曇天</option><option>雨天</option></select></div>
+      <div class="form-group"><label>時間帯</label><select><option>06:00-08:00</option><option>08:00-10:00</option><option>10:00-12:00</option><option>12:00-14:00</option><option>14:00-16:00</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>目視 上り人数</label><input type="number" value="" placeholder="0" style="width:100px"></div>
+      <div class="form-group"><label>目視 下り人数</label><input type="number" value="" placeholder="0" style="width:100px"></div>
+      <div class="form-group"><label>同時間帯 IRカウント（上り）</label><input type="number" value="" placeholder="自動取得" style="width:130px" disabled></div>
+      <div class="form-group"><label>同時間帯 IRカウント（下り）</label><input type="number" value="" placeholder="自動取得" style="width:130px" disabled></div>
+      <div class="form-group"><label>記録者</label><input type="text" value="" placeholder="氏名" style="width:120px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button style="padding:8px 24px;background:#2a5298;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">登録</button>
+      <button style="padding:8px 24px;background:#fff;color:#555;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:14px">一括CSV取込</button>
+    </div>
+  </div>
+
+  <!-- Calibration Records -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">キャリブレーション記録一覧</div>
+      <div class="panel-actions">
+        <button class="btn-sm">CSV出力</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>実施日</th><th>登山口</th><th>天候</th><th>時間帯</th><th>目視(上/下)</th><th>IR(上/下)</th><th>補正係数</th><th>記録者</th></tr></thead>
+      <tbody>
+        <tr><td>2024/7/13</td><td>砂防新道</td><td><span class="correction-badge cb-sunny">晴</span></td><td>06-08時</td><td>68 / 12</td><td>63 / 11</td><td><b>1.079</b></td><td>田中</td></tr>
+        <tr><td>2024/7/13</td><td>砂防新道</td><td><span class="correction-badge cb-sunny">晴</span></td><td>08-10時</td><td>45 / 38</td><td>42 / 36</td><td><b>1.064</b></td><td>田中</td></tr>
+        <tr><td>2024/7/6</td><td>砂防新道</td><td><span class="correction-badge cb-cloudy">曇</span></td><td>06-08時</td><td>52 / 8</td><td>47 / 7</td><td><b>1.111</b></td><td>佐藤</td></tr>
+        <tr><td>2024/7/1</td><td>観光新道</td><td><span class="correction-badge cb-rainy">雨</span></td><td>06-08時</td><td>18 / 3</td><td>15 / 3</td><td><b>1.167</b></td><td>鈴木</td></tr>
+        <tr><td>2024/6/29</td><td>平瀬道</td><td><span class="correction-badge cb-sunny">晴</span></td><td>08-10時</td><td>22 / 15</td><td>21 / 14</td><td><b>1.057</b></td><td>田中</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== CAMERA AI ========== -->
+<div id="page-camera" style="display:none">
+  <div class="header"><h1>カメラAI解析</h1><div class="header-meta"><span class="badge" style="background:#e0e7ff;color:#3730a3">課題2: センサーカメラ＋AI</span></div></div>
+
+  <!-- Status Banner -->
+  <div class="panel" style="border-left:4px solid #2a5298;background:#f0f4ff">
+    <p style="font-size:13px;color:#1e3a5f">センサーカメラ＋AI判定による精度検証フェーズ。IRカウンターとの比較により、グループ通過の過小カウント問題の補正を実施中。</p>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="cards" style="grid-template-columns: repeat(2, 1fr)">
+    <div class="card">
+      <div class="card-label">AI検出精度（平均）</div>
+      <div class="card-value" style="color:#22c55e">93.2%</div>
+      <div class="card-sub">Detectron2 v0.6</div>
+    </div>
+    <div class="card">
+      <div class="card-label">IR対比 補正率</div>
+      <div class="card-value" style="color:#2a5298">+8.3%</div>
+      <div class="card-sub">AIの方がIRより8.3%多く検出（グループ通過補正）</div>
+    </div>
+  </div>
+
+  <!-- IR vs AI comparison chart -->
+  <div class="grid-equal">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">IR vs AI 時間帯別比較（本日）</div>
+      </div>
+      <canvas id="irVsAiChart" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">グループサイズ別 IR誤差率</div>
+      </div>
+      <canvas id="groupErrorChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Detection table -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">解析結果一覧</div>
+      <div class="panel-actions">
+        <select class="btn-sm" style="padding:4px 8px"><option>本日</option><option>過去7日</option><option>過去30日</option></select>
+        <button class="btn-sm">CSV出力</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>撮影時刻</th><th>カメラ</th><th>AI検出</th><th>グループ数</th><th>IRカウント</th><th>差異</th><th>確信度</th><th>補正提案</th></tr></thead>
+      <tbody>
+        <tr><td>06:23</td><td>砂防A</td><td>3人</td><td>1組(3名)</td><td>1カウント</td><td style="color:#dc2626">+2</td><td>0.92</td><td>グループ補正 +2</td></tr>
+        <tr><td>06:45</td><td>砂防A</td><td>1人</td><td>1組(1名)</td><td>1カウント</td><td style="color:#22c55e">±0</td><td>0.98</td><td>-</td></tr>
+        <tr><td>07:02</td><td>砂防A</td><td>5人</td><td>1組(3名)+1組(2名)</td><td>3カウント</td><td style="color:#dc2626">+2</td><td>0.87</td><td>グループ補正 +2</td></tr>
+        <tr><td>07:15</td><td>砂防B</td><td>2人</td><td>1組(2名)</td><td>2カウント</td><td style="color:#22c55e">±0</td><td>0.95</td><td>-</td></tr>
+        <tr><td>07:33</td><td>砂防A</td><td>8人</td><td>1組(5名)+1組(3名)</td><td>4カウント</td><td style="color:#dc2626">+4</td><td>0.84</td><td>グループ補正 +4</td></tr>
+        <tr><td>07:51</td><td>砂防B</td><td>1人</td><td>1組(1名)</td><td>1カウント</td><td style="color:#22c55e">±0</td><td>0.97</td><td>-</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#888;margin-top:12px">グループ補正ロジック: AI画像解析で同一フレーム内の人数を検出し、IRカウント（通過回数ベース）との差分をグループ通過補正として記録。確信度0.85以上の検出のみ自動補正対象。</p>
+  </div>
+
+</div>
+
+<!-- ========== SITE ANALYSIS ========== -->
+<div id="page-sites" style="display:none">
+  <div class="header"><h1>設置場所分析</h1><div class="header-meta"><span class="badge" style="background:#e0e7ff;color:#3730a3">課題3: データ整理・コスト削減</span></div></div>
+
+  <!-- Overview Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">総設置箇所</div>
+      <div class="card-value" style="color:#2a5298">17</div>
+      <div class="card-sub">4県（石川・岐阜・福井・富山）</div>
+    </div>
+    <div class="card">
+      <div class="card-label">年間平均稼働率</div>
+      <div class="card-value" style="color:#eab308">72.4%</div>
+      <div class="card-sub">故障・欠損による停止含む</div>
+    </div>
+    <div class="card">
+      <div class="card-label">現在の稼働状況</div>
+      <div class="card-value" style="font-size:22px;color:#22c55e">10 / 16</div>
+      <div class="card-sub">稼働10 / 修理2 / 故障2 / 撤去2</div>
+    </div>
+    <div class="card">
+      <div class="card-label">データ欠損率（R4年度）</div>
+      <div class="card-value" style="color:#dc2626">27.6%</div>
+      <div class="card-sub">故障セル数/全計測セル数</div>
+    </div>
+  </div>
+
+  <!-- Device Status Table -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">カウンター・カメラ ステータス管理</div>
+      <div class="panel-actions">
+        <button class="btn-sm">CSV出力</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>設置場所</th><th>県</th><th>種別</th><th>ステータス</th><th>最終データ取得</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td><b>別当出合（砂防）</b></td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 14:00</td><td>-</td></tr>
+        <tr><td><b>別当出合（砂防）</b></td><td>石川</td><td>カメラA</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:50</td><td>AI検証中</td></tr>
+        <tr><td><b>別当出合（砂防）</b></td><td>石川</td><td>カメラB</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:50</td><td>AI検証中</td></tr>
+        <tr><td><b>別当出合（観光）</b></td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:55</td><td>-</td></tr>
+        <tr><td><b>市ノ瀬</b></td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:48</td><td>-</td></tr>
+        <tr><td><b>平瀬道（大白川）</b></td><td>岐阜</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:40</td><td>-</td></tr>
+        <tr><td>白山一里野</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-yellow"></span>修理中</td><td>2024/7/2 09:00</td><td>基盤交換待ち（7月下旬復旧見込み）</td></tr>
+        <tr><td>小原林道</td><td>岐阜</td><td>IRカウンター</td><td><span class="status-dot dot-red"></span>故障</td><td>2024/6/18 11:00</td><td>バッテリー不良。次回巡回時に交換予定</td></tr>
+        <tr><td>石徹白</td><td>岐阜</td><td>IRカウンター</td><td><span class="status-dot dot-red"></span>故障</td><td>2024/5/30 08:00</td><td>センサー部破損。修理費用対効果を検討中</td></tr>
+        <tr><td>鳩ヶ湯</td><td>福井</td><td>IRカウンター</td><td><span class="status-dot dot-gray"></span>撤去</td><td>2024/3/15</td><td>R5年度末に撤去。利用者数少・故障頻発</td></tr>
+        <tr><td>釈迦新道</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:30</td><td>バッテリー残22%、要交換</td></tr>
+        <tr><td>チブリ尾根</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 12:00</td><td>-</td></tr>
+        <tr><td>岩屋俣谷探勝路</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 13:20</td><td>-</td></tr>
+        <tr><td>白山禅定道</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-yellow"></span>修理中</td><td>2024/6/25 10:00</td><td>防水パッキン劣化、部品到着待ち</td></tr>
+        <tr><td>加賀禅定道</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-green"></span>稼働中</td><td>2024/7/15 12:30</td><td>-</td></tr>
+        <tr><td>中宮道</td><td>石川</td><td>IRカウンター</td><td><span class="status-dot dot-gray"></span>撤去</td><td>2024/3/15</td><td>R5年度末に撤去。通行止め長期化</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#888;margin-top:8px">ステータス: <span class="status-dot dot-green"></span>稼働中 / <span class="status-dot dot-yellow"></span>修理中 / <span class="status-dot dot-red"></span>故障 / <span class="status-dot dot-gray"></span>撤去。17箇所中 稼働10 / 修理2 / 故障2 / 撤去2 （カメラ2台は別カウント）</p>
+  </div>
+
+  <!-- Data gap heatmap -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">月別 データ欠損ヒートマップ（R4年度）</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="font-size:11px">
+        <thead><tr><th style="font-size:11px">場所</th><th style="font-size:11px">4月</th><th style="font-size:11px">5月</th><th style="font-size:11px">6月</th><th style="font-size:11px">7月</th><th style="font-size:11px">8月</th><th style="font-size:11px">9月</th><th style="font-size:11px">10月</th><th style="font-size:11px">11月</th></tr></thead>
+        <tbody>
+          <tr><td>別当出合(砂防)</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#f0f2f5;text-align:center;color:#999">-</td></tr>
+          <tr><td>別当出合(観光)</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#f0f2f5;text-align:center;color:#999">-</td></tr>
+          <tr><td>平瀬道</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#f0f2f5;text-align:center;color:#999">-</td></tr>
+          <tr><td>石徹白</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#f0f2f5;text-align:center;color:#999">-</td></tr>
+          <tr><td>鳩ヶ湯</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#f0f2f5;text-align:center;color:#999">-</td></tr>
+          <tr><td>小原林道</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#dcfce7;text-align:center">OK</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#fee2e2;text-align:center;color:#dc2626">故障</td><td style="background:#f0f2f5;text-align:center;color:#999">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:11px;color:#888;margin-top:8px">環境省PDFのカウンターデータに基づく。赤セル=故障/データ欠損。11月以降は閉山期。</p>
+  </div>
+
+</div>
+
+<!-- ========== EXPORT ========== -->
+<div id="page-export" style="display:none">
+  <div class="header"><h1>レポート出力</h1></div>
+  <div class="panel">
+    <div class="panel-title" style="margin-bottom:16px">レポート形式を選択</div>
+    <div class="export-grid">
+      <div class="export-card">
+        <div class="export-icon">📊</div>
+        <div class="export-label">日次レポート (CSV)</div>
+        <div class="export-desc">登山口別・時間帯別の生データ</div>
+      </div>
+      <div class="export-card">
+        <div class="export-icon">📋</div>
+        <div class="export-label">月次レポート (Excel)</div>
+        <div class="export-desc">集計済みデータ＋グラフ付き</div>
+      </div>
+      <div class="export-card">
+        <div class="export-icon">📄</div>
+        <div class="export-label">年次報告書 (PDF)</div>
+        <div class="export-desc">環境省報告用フォーマット</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SETTINGS ========== -->
+<div id="page-settings" style="display:none">
+  <div class="header"><h1>設定</h1></div>
+  <div class="panel">
+    <div class="panel-title" style="margin-bottom:16px">システム設定</div>
+    <table>
+      <tr><td style="width:200px;font-weight:600">データ更新間隔</td><td><select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px"><option>1時間</option><option>30分</option><option>15分</option></select></td></tr>
+      <tr><td style="font-weight:600">タイムゾーン</td><td>Asia/Tokyo (JST +09:00)</td></tr>
+      <tr><td style="font-weight:600">アラート通知先</td><td><input type="email" value="admin@hakusan-np.go.jp" style="width:300px;padding:4px 8px;border:1px solid #ddd;border-radius:4px"></td></tr>
+      <tr><td style="font-weight:600">APIバージョン</td><td>v1</td></tr>
+      <tr><td style="font-weight:600">AI解析エンジン</td><td>Detectron2 v0.6 (Apache 2.0)</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <div class="panel-title" style="margin-bottom:16px">アラート閾値設定</div>
+    <table>
+      <thead><tr><th>登山口</th><th>日次入山者 警告</th><th>日次入山者 危険</th><th>時間帯集中 警告</th><th>バッテリー警告</th></tr></thead>
+      <tbody>
+        <tr><td>砂防新道</td><td><input type="number" value="200" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="250" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="50" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"> 人/時</td><td rowspan="5" style="vertical-align:middle"><input type="number" value="25" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"> %</td></tr>
+        <tr><td>観光新道</td><td><input type="number" value="80" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="100" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="20" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"> 人/時</td></tr>
+        <tr><td>平瀬道</td><td><input type="number" value="60" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="80" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="15" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"> 人/時</td></tr>
+        <tr><td>市ノ瀬・別山道</td><td><input type="number" value="40" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="60" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="10" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"> 人/時</td></tr>
+        <tr><td>釈迦新道</td><td><input type="number" value="30" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="40" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></td><td><input type="number" value="8" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"> 人/時</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:16px;text-align:right"><button style="padding:8px 24px;background:#2a5298;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">設定を保存</button></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Navigation
+function showPage(id) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('page-' + id).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (id === 'history') initHistoryCharts();
+  if (id === 'comparison') initComparisonChart();
+  if (id === 'camera') initCameraCharts();
+}
+
+// Dashboard Charts
+const hours = ['04','05','06','07','08','09','10','11','12','13','14'];
+const upData = [2, 15, 63, 85, 72, 51, 38, 25, 18, 12, 6];
+const downData = [0, 0, 2, 5, 8, 12, 28, 45, 52, 68, 78];
+
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'bar',
+  data: {
+    labels: hours.map(h => h + ':00'),
+    datasets: [
+      { label: '入山', data: upData, backgroundColor: 'rgba(42,82,152,0.8)', borderRadius: 4 },
+      { label: '下山', data: downData, backgroundColor: 'rgba(234,179,8,0.7)', borderRadius: 4 }
+    ]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, title: { display: true, text: '人数' } } } }
+});
+
+new Chart(document.getElementById('routePie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['砂防新道', '観光新道', '平瀬道', '市ノ瀬・別山道', '釈迦新道'],
+    datasets: [{ data: [71.8, 13.4, 8.0, 4.7, 2.1], backgroundColor: ['#2a5298','#3b82f6','#60a5fa','#93c5fd','#bfdbfe'] }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'right' } } }
+});
+
+// History Charts (lazy init)
+function initHistoryCharts() {
+  if (window._histInit) return; window._histInit = true;
+  new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+      labels: ['4月','5月','6月','7月','8月','9月','10月'],
+      datasets: [{ label: '入山者数', data: [1200, 4800, 5600, 14200, 13800, 6100, 2500], backgroundColor: '#2a5298', borderRadius: 4 }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  });
+  new Chart(document.getElementById('dowChart'), {
+    type: 'bar',
+    data: {
+      labels: ['月','火','水','木','金','土','日'],
+      datasets: [{ label: '平均入山者数', data: [95, 78, 82, 88, 110, 285, 242], backgroundColor: ['#93c5fd','#93c5fd','#93c5fd','#93c5fd','#93c5fd','#2a5298','#3b82f6'], borderRadius: 4 }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+function initComparisonChart() {
+  if (window._compInit) return; window._compInit = true;
+  new Chart(document.getElementById('yearCompChart'), {
+    type: 'line',
+    data: {
+      labels: ['4月','5月','6月','7月','8月','9月','10月'],
+      datasets: [
+        { label: '2024年', data: [1200, 4800, 5600, 14200, 13800, 6100, 2500], borderColor: '#2a5298', backgroundColor: 'rgba(42,82,152,0.1)', fill: true, tension: 0.3 },
+        { label: '2023年', data: [1000, 4200, 5100, 13500, 12900, 5800, 2500], borderColor: '#94a3b8', borderDash: [5,5], tension: 0.3 },
+        { label: '2017年(ピーク)', data: [1500, 6200, 7200, 18500, 17800, 8200, 3600], borderColor: '#ef4444', borderDash: [2,4], tension: 0.3 }
+      ]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: '人数' } } } }
+  });
+}
+
+// Camera AI Charts
+function initCameraCharts() {
+  if (window._camInit) return; window._camInit = true;
+  const camHours = ['05','06','07','08','09','10','11','12','13','14'];
+  new Chart(document.getElementById('irVsAiChart'), {
+    type: 'bar',
+    data: {
+      labels: camHours.map(h => h + ':00'),
+      datasets: [
+        { label: 'IRカウント', data: [1, 12, 48, 62, 45, 32, 22, 18, 15, 8], backgroundColor: 'rgba(42,82,152,0.7)', borderRadius: 4 },
+        { label: 'AI検出', data: [1, 15, 55, 71, 50, 35, 24, 19, 16, 9], backgroundColor: 'rgba(234,179,8,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, title: { display: true, text: '人数' } } } }
+  });
+  new Chart(document.getElementById('groupErrorChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1人', '2人組', '3人組', '4人組', '5人以上'],
+      datasets: [{ label: 'IR過小カウント率', data: [2, 18, 35, 48, 62], backgroundColor: ['#dcfce7','#fef3c7','#fed7aa','#fecaca','#fee2e2'], borderColor: ['#22c55e','#eab308','#f97316','#ef4444','#dc2626'], borderWidth: 1, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: '過小カウント率 (%)' } } }
+    }
+  });
+}
+
+</script>
+</body>
+</html>
